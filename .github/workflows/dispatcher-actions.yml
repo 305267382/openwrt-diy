@@ -9,13 +9,7 @@
 name: Openwrt-AutoBuild
 
 on: 
-  push:
-    branches:
-      - master
-  schedule:
-    - cron: 0 20 * * *
-  watch:
-    types: started
+  repository_dispatch:
 
 env:
   REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
@@ -35,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64]
+        target: ["${{ github.event.action }}"]
         
     steps:
     - name: Checkout
@@ -143,6 +137,7 @@ jobs:
         fi
         make defconfig
         [ $(grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/') == generic ] && DEVICE_NAME=$(grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/CONFIG_TARGET_(.*)_DEVICE_.*=y/\1/') || DEVICE_NAME=$(grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/')
+        echo "s/xiaomi_redmi-router/redmi/" 
         DEVICE_NAME=`echo ${DEVICE_NAME/xiaomi_redmi-router/redmi}`
         echo "::set-env name=DEVICE_NAME::$DEVICE_NAME"
         
@@ -184,7 +179,6 @@ jobs:
       run: |
         mkdir firmware && find openwrt/bin/*/*/*/ -maxdepth 1 \
         -name "*combined*" \
-        -or -name "*theme-edge*.ipk" \
         -or -name "*sysupgrade.bin" \
         -or -name "sha256sums" \
         | xargs -i mv -f {} ./firmware/
